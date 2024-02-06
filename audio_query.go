@@ -25,13 +25,22 @@ type AudioQuery struct {
 func (s *Synthesizer) createAudioQuery(text string, styleID StyleId, enableKana bool) (a AudioQuery, err error) {
 	var ptr *byte
 	var code ResultCode
-	if enableKana {
-		code = s.v.voicevoxSynthesizerCreateAudioQueryFromKana(s.synthesizer, text, styleID, uintptr(unsafe.Pointer(&ptr)))
-	} else {
-		code = s.v.voicevoxSynthesizerCreateAudioQuery(s.synthesizer, text, styleID, uintptr(unsafe.Pointer(&ptr)))
+	for i := 0; i < 3; i++ {
+		if enableKana {
+			code = s.v.voicevoxSynthesizerCreateAudioQueryFromKana(s.synthesizer, text, styleID, uintptr(unsafe.Pointer(&ptr)))
+		} else {
+			code = s.v.voicevoxSynthesizerCreateAudioQuery(s.synthesizer, text, styleID, uintptr(unsafe.Pointer(&ptr)))
+		}
+		if code != VOICEVOX_RESULT_OK {
+			err = s.v.newError(code)
+			return
+		}
+		if ptr == nil {
+			continue
+		}
 	}
-	if code != VOICEVOX_RESULT_OK {
-		err = s.v.newError(code)
+	if ptr == nil {
+		err = s.v.newError(VOICEVOX_RESULT_INVALID_AUDIO_QUERY_ERROR)
 		return
 	}
 	defer s.v.voicevoxJsonFree(uintptr(unsafe.Pointer(ptr)))
